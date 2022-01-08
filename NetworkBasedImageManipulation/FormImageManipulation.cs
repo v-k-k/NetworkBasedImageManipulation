@@ -1,19 +1,28 @@
 ﻿using NetworkBasedImageManipulation.Workers;
+using NetworkBasedImageManipulation.Listeners;
 using System.Windows.Forms;
+using System.Threading;
 using System.Drawing;
 using System;
+using System.Threading.Tasks;
 
 namespace NetworkBasedImageManipulation
 {
     public partial class FormImageManipulation : Form
     {
         private const string defaultSample = "sample.jpg";
+        private string IP = "127.0.0.1";
+        private int PORT = 12345;
 
         Bitmap bmp;
         string brightnessLabel;
         string contrastLabel;
         string gammaLabel;
         string scaleLabel;
+        VideoWorker streamPlayer;
+        UdpListener formUdpListener;
+        Task udpThread;
+        Thread tcpThread;
 
         public FormImageManipulation()
         {
@@ -29,6 +38,10 @@ namespace NetworkBasedImageManipulation
             comboBoxScalingMethod.SelectedIndex = 0;
 
             UpdateLabels();
+
+            richTextBoxNetworkLog.Text += $"Waiting for the client connection...{Environment.NewLine}";
+
+            formUdpListener = new UdpListener(networkLog: richTextBoxNetworkLog);
         }
 
         private void LoadPicture(string fileName)
@@ -188,6 +201,40 @@ namespace NetworkBasedImageManipulation
             UpdateContrastLabel();
             UpdateGammaLabel();
             UpdateScaleLabel();
+        }
+
+        private void buttonApplyUdpPayload_Click(object sender, EventArgs e)
+        {
+            streamPlayer = formUdpListener.GetVideoStream();
+            streamPlayer.showStream();
+        }
+
+        private void FormImageManipulation_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            // DISPOSE the video and listeners
+        }
+
+        private void buttonMakeScreenshot_Click(object sender, EventArgs e)
+        {
+            formUdpListener.CloseListener();
+            streamPlayer.closeStream();
+            bmp = streamPlayer.GetFrame();
+            pictureBoxImageContainer.Image = bmp;
+        }
+
+        private void buttonCloseStream_Click(object sender, EventArgs e)
+        {
+            streamPlayer.closeStream();
+        }
+
+        private void buttonApplyStreamEndpt_Click(object sender, EventArgs e)
+        {
+            formUdpListener.ReceiveBroadcast(ipToListen: IP, portToListen: PORT, newStream: true);
+        }
+
+        private void buttonApplyCommandEndpt_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
