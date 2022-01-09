@@ -1,18 +1,16 @@
 ﻿using NetworkBasedImageManipulation.Workers;
 using NetworkBasedImageManipulation.Listeners;
 using System.Windows.Forms;
-using System.Threading;
 using System.Drawing;
 using System;
-using System.Threading.Tasks;
 
 namespace NetworkBasedImageManipulation
 {
     public partial class FormImageManipulation : Form
     {
         private const string defaultSample = "sample.jpg";
-        private string IP = "127.0.0.1";
-        private int PORT = 12345;
+        public string IP => formTcpListener.IpSetup == null ? "127.0.0.1" : formTcpListener.IpSetup;
+        public int PORT => formTcpListener.PortSetup == 0 ? 1234 : formTcpListener.PortSetup;
 
         Bitmap bmp;
         string brightnessLabel;
@@ -21,8 +19,7 @@ namespace NetworkBasedImageManipulation
         string scaleLabel;
         VideoWorker streamPlayer;
         UdpListener formUdpListener;
-        Task udpThread;
-        Thread tcpThread;
+        TcpListener formTcpListener;
 
         public FormImageManipulation()
         {
@@ -39,9 +36,10 @@ namespace NetworkBasedImageManipulation
 
             UpdateLabels();
 
-            richTextBoxNetworkLog.Text += $"Waiting for the client connection...{Environment.NewLine}";
+            richTextBoxNetworkLog.Text += $"Waiting for the TCP and UDP clients to connect...{Environment.NewLine}";
 
             formUdpListener = new UdpListener(networkLog: richTextBoxNetworkLog);
+            formTcpListener = new TcpListener(networkLog: richTextBoxNetworkLog);
         }
 
         private void LoadPicture(string fileName)
@@ -234,7 +232,7 @@ namespace NetworkBasedImageManipulation
 
         private void buttonApplyCommandEndpt_Click(object sender, EventArgs e)
         {
-
+            formTcpListener.StartListeningForIncomingConnection();
         }
     }
 }

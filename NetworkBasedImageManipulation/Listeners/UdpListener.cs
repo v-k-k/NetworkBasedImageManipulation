@@ -1,5 +1,4 @@
 ﻿using NetworkBasedImageManipulation.Workers;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Net;
@@ -7,30 +6,15 @@ using System;
 
 namespace NetworkBasedImageManipulation.Listeners
 {
-    public class UdpListener
+    public class UdpListener : BaseListener
     {
-        IPEndPoint mIPepLocal;
-        Socket mSockBroadCastReceiver;
-        private readonly int CBUFFERSIZE = 1024;
-
-        private System.Windows.Forms.RichTextBox networkLog;
         private VideoWorker videoCodec;
-        private SocketAsyncEventArgs _asyncSocket;
 
-        private string ipToListen;
-        private int portToListen;
-
-        private bool IsClosed = true;
-
-        public List<EndPoint> mListOfClients;
-
-        public UdpListener(System.Windows.Forms.RichTextBox networkLog)
+        public UdpListener(System.Windows.Forms.RichTextBox networkLog) : base(networkLog)
         {
             mSockBroadCastReceiver = new Socket(
                 AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             mSockBroadCastReceiver.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            this.networkLog = networkLog;
-            IsClosed = false;
         }
 
         public VideoWorker GetVideoStream()
@@ -43,17 +27,7 @@ namespace NetworkBasedImageManipulation.Listeners
         private async void ReceiveCompletedCallback(object Sender, SocketAsyncEventArgs saea)
         {
             // number of received bytes is present in saea.BytesTransferred
-            string textReceived = $"{DateTime.Now} : [UdpListener] --> Received {saea.BytesTransferred} bytes from stream";
-            //Encoding.ASCII.GetString(saea.Buffer, 0, saea.BytesTransferred);
-
-            // Checking if this thread has access to the object.
-            if (!String.IsNullOrEmpty(textReceived))
-            {
-                if (networkLog.InvokeRequired)
-                    networkLog.Invoke(new Action(() => networkLog.AppendText(textReceived + Environment.NewLine)));
-                else
-                    networkLog.Text += textReceived;
-            }
+            LogEvent($"Received {saea.BytesTransferred} bytes from stream");            
             await Task.Delay(5000);
 
             // clear buffer before you start another receive operation
@@ -104,6 +78,7 @@ namespace NetworkBasedImageManipulation.Listeners
             (Sender as Socket).Shutdown(SocketShutdown.Both);
             (Sender as Socket).Close();
             //saea.Dispose();
+            LogEvent($"Shutting down the listener");
         }
 
         public void CloseListener()
@@ -111,11 +86,6 @@ namespace NetworkBasedImageManipulation.Listeners
             _asyncSocket.Completed -= ReceiveCompletedCallback;
             _asyncSocket.Completed += CloseCompletedCallback;
             IsClosed = true;
-        }
-
-        private void SendCompletedCallback(object sender, SocketAsyncEventArgs e)
-        {
-            Console.WriteLine("Send operation completed.");
         }
     }
 }
